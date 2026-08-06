@@ -9,7 +9,10 @@ from app.services.image_pasting import (
     paste_images_into_flow,
     paste_image_into_flow,
 )
-from app.services.prompt_submission import enter_prompt_and_send
+from app.services.prompt_submission import (
+    enter_prompt_and_send,
+    enter_edit_prompt_and_send,
+)
 from app.services.image_download import (
     open_latest_generated_image,
     download_generated_image,
@@ -31,6 +34,7 @@ __all__ = [
     "paste_images_into_flow",
     "paste_image_into_flow",
     "enter_prompt_and_send",
+    "enter_edit_prompt_and_send",
     "open_latest_generated_image",
     "download_generated_image",
     "take_screenshot",
@@ -39,5 +43,4 @@ __all__ = [
     "update_project_record",
     "get_latest_project_record",
     "launch_flow_browser",
-    "run_poster_editor",
 ]

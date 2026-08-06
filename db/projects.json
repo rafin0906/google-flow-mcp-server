@@ -59,6 +59,16 @@
       "image_edit_page_url": "https://labs.google/fx/tools/flow/project/dca6243e-61a7-459e-af13-52a6e49912ae/edit/f0fb4c08-99b5-4f5e-bede-7d8bb03c9c14",
       "downloaded_image_path": "C:\\MCP Servers\\flow-project\\downloads\\Player_colored_hair_pink_202608062350.jpeg",
       "status": "completed"
+    },
+    {
+      "project_id": "proj_7bb44f27",
+      "project_url": "https://labs.google/fx/tools/flow/project/66419984-bce2-49c1-bc4a-9c96f8184e50",
+      "ratio": "16:9",
+      "created_at": "2026-08-06T19:00:02.043702+00:00",
+      "updated_at": "2026-08-06T19:39:11.854535+00:00",
+      "image_edit_page_url": "https://labs.google/fx/tools/flow/project/66419984-bce2-49c1-bc4a-9c96f8184e50/edit/258bb937-ca16-4ce4-ae37-4a5af4fda3d4",
+      "downloaded_image_path": "C:\\MCP Servers\\flow-project\\downloads\\Gavi_colored_hair_pink_202608070139.jpeg",
+      "status": "edit_completed"
     }
   ]
 }

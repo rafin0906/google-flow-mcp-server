@@ -331,3 +331,77 @@ def enter_prompt_and_send(
     print(
         "60-second generation wait completed."
     )
+
+
+# ==================================================
+# EDIT PROMPT SUBMISSION SERVICE (FAST IMMEDIATE CLICK)
+# ==================================================
+
+def enter_edit_prompt_and_send(
+    page,
+    prompt_text,
+):
+    """
+    Submits prompt on the image edit page and immediately clicks Send
+    without waiting for disabled state checks or long stabilization delays.
+    """
+    print("\nWaiting for Flow textbox on edit page...")
+    textbox = page.locator(TEXTBOX_SELECTOR).last
+    textbox.wait_for(state="visible", timeout=30000)
+    textbox.scroll_into_view_if_needed()
+
+    try:
+        textbox.click(timeout=3000)
+    except Exception:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(500)
+        textbox.click(timeout=5000, force=True)
+
+    page.wait_for_timeout(1000)
+
+    print("\nCopying editing prompt to clipboard...")
+    pyperclip.copy(prompt_text)
+
+    print("Pasting editing prompt into Flow...")
+    textbox.press("Control+V")
+    page.wait_for_timeout(2000)
+
+    print("\nLocating Send button on edit page...")
+    send_selectors = [
+        SEND_BUTTON_SELECTOR,
+        "button:has(i:text-is('arrow_forward'))",
+        "button:has(i:text-is('send'))",
+        "button:has(i:has-text('arrow_forward'))",
+        "button[type='submit']",
+    ]
+
+    send_button = None
+    for sel in send_selectors:
+        loc = page.locator(sel)
+        if loc.count() > 0 and loc.last.is_visible():
+            send_button = loc.last
+            break
+
+    if not send_button:
+        send_button = page.locator(SEND_BUTTON_SELECTOR).last
+
+    print("Clicking Send button immediately (no wait)...")
+    try:
+        send_button.click(timeout=3000, no_wait_after=True)
+        print("Send clicked via standard click.")
+    except Exception as click_err:
+        print(f"Standard click on Send button failed ({click_err}). Attempting force/JS click...")
+        try:
+            send_button.click(force=True, timeout=3000, no_wait_after=True)
+            print("Send clicked via force click.")
+        except Exception:
+            send_button.evaluate("(element) => element.click()")
+            print("Send clicked via JavaScript evaluate.")
+
+    page.wait_for_timeout(3000)
+
+    print("\nWaiting 40 seconds for Flow to generate the new edited image variation...")
+    page.wait_for_timeout(40_000)
+    print("40-second generation wait completed.")
+
+

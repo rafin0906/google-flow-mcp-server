@@ -10,63 +10,56 @@ from app.config import DOWNLOADS_DIR
 
 def open_latest_generated_image(page, timeout=120000):
     """
-    Waits until total image links on canvas >= 2 (Source image + newly generated image).
-    Then selects and opens the last (newest generated) image link.
+    Waits for the newly generated image and ensures the edit view / Download button is ready.
+    Handles both main project canvas and direct edit page contexts.
     """
+    print("\nWaiting for generated image and Download button...")
 
-    print("\nWaiting for newly generated image on canvas (waiting until total images >= 2)...")
+    download_btn = page.locator('button:has(i:text("download"))')
+    if download_btn.count() > 0 and download_btn.first.is_visible():
+        print("Edit page is already open and Download button is visible.")
+        return page
 
     image_links = page.locator('a[href*="/edit/"]')
-
     start_time = time.monotonic()
     image_count = 0
 
-    # Poll until at least 2 image links appear
     while True:
+        if download_btn.count() > 0 and download_btn.first.is_visible():
+            print("Download button appeared on edit page!")
+            return page
+
         try:
             image_count = image_links.count()
         except Exception:
             image_count = 0
 
-        if image_count >= 2:
-            print(f"Newly generated image detected! Total images on canvas: {image_count}")
+        if image_count >= 1:
             break
 
         elapsed_ms = (time.monotonic() - start_time) * 1000
         if elapsed_ms >= timeout:
-            print(f"Timeout reached. Total images currently found: {image_count}")
+            print(f"Timeout reached waiting for image links. Total found: {image_count}")
             break
 
         page.wait_for_timeout(2000)
 
-    if image_count >= 2:
-        # Google Flow displays the newest generated image on the leftmost side (first in DOM)
+    if image_links.count() > 0:
         latest_image_link = image_links.first
-    else:
-        print("Fallback: Searching all available generated image links...")
-        alt_images = page.locator('img[alt="Generated image"]')
-        if alt_images.count() > 0:
-            latest_image_link = alt_images.first.locator("xpath=ancestor::a[1]")
-        elif image_links.count() > 0:
-            latest_image_link = image_links.first
-        else:
-            raise RuntimeError("No generated image was found on the canvas.")
+        try:
+            latest_image_link.scroll_into_view_if_needed()
+            page.wait_for_timeout(500)
+            print("Opening the latest generated image link...")
+            latest_image_link.click(timeout=10000)
+        except Exception as err:
+            print(f"Click on image link skipped/handled: {err}")
 
-    latest_image_link.scroll_into_view_if_needed()
-    page.wait_for_timeout(1000)
-
-    print("Opening the latest generated image...")
-
-    latest_image_link.click(timeout=30000)
-
-    page.wait_for_timeout(3000)
-
+    page.wait_for_timeout(2000)
     print("Waiting for Download button on edit page...")
-    download_button = page.locator('button:has(i:text("download"))')
-    download_button.wait_for(state="visible", timeout=timeout)
-
+    download_btn.wait_for(state="visible", timeout=timeout)
     print("Edit page loaded and ready.")
-    return latest_image_link
+    return page
+
 
 
 def download_generated_image(

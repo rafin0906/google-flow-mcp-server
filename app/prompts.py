@@ -96,3 +96,14 @@ put the headlines in the top right corner and the sub-headlines below it
 
 AUTOMATION_PROMPT_COMPLETE_9F3A
 """.strip()
+
+
+# ==================================================
+# FLOW EDIT PROMPT
+# ==================================================
+
+FLOW_EDIT_PROMPT = """
+Change the color of the hair to black.
+AUTOMATION_PROMPT_COMPLETE_9F3A
+""".strip()
+
