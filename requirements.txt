@@ -1,0 +1,4 @@
+playwright>=1.40.0
+Pillow>=10.0.0
+pywin32>=306
+pyperclip>=1.8.2
