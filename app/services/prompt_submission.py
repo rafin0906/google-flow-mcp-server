@@ -15,7 +15,10 @@ from app.prompts import FLOW_PROMPT
 
 def enter_prompt_and_send(
     page,
+    prompt_text=None,
 ):
+
+    target_prompt = prompt_text if prompt_text is not None else FLOW_PROMPT
 
     print(
         "\nWaiting for Flow textbox..."
@@ -50,8 +53,9 @@ def enter_prompt_and_send(
     )
 
     pyperclip.copy(
-        FLOW_PROMPT
+        target_prompt
     )
+
 
     # ==========================================
     # PASTE PROMPT ONCE
@@ -93,14 +97,15 @@ def enter_prompt_and_send(
             .strip()
         )
 
-        if (
-            PROMPT_END_MARKER
-            in current_text
-        ):
+        if PROMPT_END_MARKER in target_prompt:
+            if PROMPT_END_MARKER in current_text:
+                prompt_complete = True
+                break
+        else:
+            if len(current_text) > 0:
+                prompt_complete = True
+                break
 
-            prompt_complete = True
-
-            break
 
         elapsed_ms = (
             time.monotonic()
@@ -252,16 +257,13 @@ def enter_prompt_and_send(
         .strip()
     )
 
-    if (
-        PROMPT_END_MARKER
-        not in final_text
-    ):
-
+    if PROMPT_END_MARKER in target_prompt and PROMPT_END_MARKER not in final_text:
         raise RuntimeError(
             "FINAL SAFETY STOP:\n"
             "Prompt end marker disappeared.\n"
             "Nothing was sent."
         )
+
 
     print(
         "Final prompt verification "

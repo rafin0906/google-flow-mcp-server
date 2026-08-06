@@ -14,6 +14,13 @@ from app.services.image_download import (
     download_generated_image,
 )
 from app.services.screenshot_capture import take_screenshot
+from app.services.ratio_selector import select_aspect_ratio
+from app.services.db_handler import (
+    save_project_record,
+    update_project_record,
+    get_latest_project_record,
+)
+from app.services.browser_handler import launch_flow_browser
 
 __all__ = [
     "click_new_project",
@@ -26,5 +33,9 @@ __all__ = [
     "open_latest_generated_image",
     "download_generated_image",
     "take_screenshot",
+    "select_aspect_ratio",
+    "save_project_record",
+    "update_project_record",
+    "get_latest_project_record",
+    "launch_flow_browser",
 ]
-

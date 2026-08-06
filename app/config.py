@@ -69,4 +69,15 @@ SCREENSHOTS_DIR = (
     / "screenshots"
 )
 
+DB_DIR = (
+    PROJECT_DIR
+    / "db"
+)
+
+DB_FILE = (
+    DB_DIR
+    / "projects.json"
+)
+
 PROFILE_DIRECTORY = "Default"
+
