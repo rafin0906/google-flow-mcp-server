@@ -1,0 +1,16 @@
+# Chrome profile directories
+chrome_profile/
+chrome-profile/
+chrome_data/
+chrome-data/
+user_data/
+.chrome_profile/
+
+# Environment and secret files
+.env
+.env.*
+
+# Python & Node
+__pycache__/
+*.py[cod]
+node_modules/
