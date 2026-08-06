@@ -39,4 +39,5 @@ __all__ = [
     "update_project_record",
     "get_latest_project_record",
     "launch_flow_browser",
+    "run_poster_editor",
 ]
