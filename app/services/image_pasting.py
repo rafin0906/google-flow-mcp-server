@@ -51,9 +51,19 @@ def paste_images_into_flow(
 
         textbox.scroll_into_view_if_needed()
 
-        textbox.click(
-            timeout=15000
-        )
+        try:
+            textbox.click(
+                timeout=5000
+            )
+        except Exception:
+            print("Normal click on textbox intercepted, pressing Escape to clear overlays...")
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(500)
+            textbox.click(
+                timeout=15000,
+                force=True
+            )
+
 
         # Ensure editor receives focus
         page.wait_for_timeout(

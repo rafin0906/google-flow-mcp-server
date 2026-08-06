@@ -1,3 +1,4 @@
+# app/services/__init__.py
 from app.services.project_creation import click_new_project
 from app.services.clipboard_handler import copy_image_to_clipboard
 from app.services.input_image_selector import (

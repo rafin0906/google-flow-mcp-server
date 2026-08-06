@@ -1,3 +1,4 @@
+# app/boss_functions/__init__.py
 from app.boss_functions.project_creator import create_project
 from app.boss_functions.poster_generator import generate_poster
 

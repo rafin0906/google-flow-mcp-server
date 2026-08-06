@@ -68,16 +68,16 @@ def select_aspect_ratio(page, ratio: str = "4:3") -> str:
 
     page.wait_for_timeout(1000)
 
-    # 2. Wait for tablist / ratio modal to open
-    print("[Ratio Selector] Waiting for ratio options tablist...")
-    tablist = page.locator('div[role="tablist"]')
-    tablist.wait_for(state="visible", timeout=10000)
+    # 2. Wait for ratio options container / buttons to open
+    print("[Ratio Selector] Waiting for ratio options tab buttons...")
+    tab_container = page.locator('div[role="tablist"]:has(button.flow_tab_slider_trigger)').first
+    tab_container.wait_for(state="visible", timeout=10000)
 
     # 3. Locate target ratio tab
     ratio_tab = None
 
-    # Try matching text inside role="tab" buttons
-    tab_by_text = page.locator(f'div[role="tablist"] button[role="tab"]:has-text("{target_text}")')
+    # Try matching text inside ratio trigger buttons
+    tab_by_text = tab_container.locator(f'button:has-text("{target_text}")')
     if tab_by_text.count() > 0:
         ratio_tab = tab_by_text.first
         print(f"[Ratio Selector] Found ratio tab by text '{target_text}'")
@@ -89,13 +89,14 @@ def select_aspect_ratio(page, ratio: str = "4:3") -> str:
             print(f"[Ratio Selector] Found ratio tab by ID suffix '{trigger_id_suffix}'")
 
     if not ratio_tab or ratio_tab.count() == 0:
-        print(f"[Ratio Selector] Fallback: Searching all buttons inside tablist for '{target_text}'...")
-        all_tabs = page.locator('div[role="tablist"] button')
+        print(f"[Ratio Selector] Fallback: Searching all slider trigger buttons for '{target_text}'...")
+        all_tabs = page.locator('button.flow_tab_slider_trigger')
         for i in range(all_tabs.count()):
             t = all_tabs.nth(i)
             if target_text in t.inner_text():
                 ratio_tab = t
                 break
+
 
     if not ratio_tab:
         raise RuntimeError(f"Could not locate aspect ratio tab for ratio '{ratio}' ({target_text})")
@@ -103,7 +104,14 @@ def select_aspect_ratio(page, ratio: str = "4:3") -> str:
     print(f"[Ratio Selector] Clicking ratio tab '{target_text}'...")
     ratio_tab.click()
 
-    page.wait_for_timeout(1500)
+    page.wait_for_timeout(1000)
+
+    # Press Escape to close any remaining radix popover container overlay
+    print("[Ratio Selector] Dismissing ratio popover modal...")
+    page.keyboard.press("Escape")
+
+    page.wait_for_timeout(1000)
 
     print(f"[Ratio Selector] Aspect ratio '{target_text}' selected successfully.")
     return target_text
+

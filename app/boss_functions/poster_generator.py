@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any, List
+# pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright, Page
 
 from app.services import (
@@ -121,7 +122,15 @@ def generate_poster(
             context, active_page = launch_flow_browser(p, headless=headless)
             try:
                 result = _execute_generator(active_page)
-                input("\nPoster generation completed. Press ENTER to exit/close Chrome...")
+                try:
+                    input("\nPoster generation completed. Press ENTER to exit/close Chrome...")
+                except (EOFError, KeyboardInterrupt):
+                    pass
                 return result
+
+
             finally:
                 context.close()
+
+if __name__ == "__main__":
+    generate_poster()

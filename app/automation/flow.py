@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright
 
 from app.services import launch_flow_browser
@@ -34,6 +35,10 @@ def run_flow(
             print(f"Downloaded Image Path: {poster_data.get('downloaded_image_path')}")
             print("==========================================\n")
 
-            input("\nPress ENTER to close Chrome...")
+            try:
+                input("\nPress ENTER to close Chrome...")
+            except (EOFError, KeyboardInterrupt):
+                pass
         finally:
             context.close()
+

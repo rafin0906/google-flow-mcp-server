@@ -1,4 +1,5 @@
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from playwright.sync_api import Playwright, BrowserContext, Page
 from app.config import USER_DATA_DIR, PROFILE_DIRECTORY
 

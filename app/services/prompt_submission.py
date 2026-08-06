@@ -271,21 +271,37 @@ def enter_prompt_and_send(
     )
 
     # ==========================================
-    # CLICK ONLY ONCE
+    # CLICK ONLY ONCE (WITH ROBUST FALLBACKS)
     # ==========================================
 
     print(
-        "\nClicking Send exactly once..."
+        "\nClicking Send button..."
     )
 
-    send_button.click(
-        timeout=15000,
-        no_wait_after=True,
-    )
+    try:
+        send_button.click(
+            timeout=5000,
+            no_wait_after=True,
+        )
+        print("Send clicked via standard click.")
+    except Exception as click_err:
+        print(f"Standard click on Send button timed out or failed ({click_err}).")
+        print("Attempting force click and JS evaluate fallbacks...")
+        try:
+            send_button.click(
+                force=True,
+                timeout=5000,
+                no_wait_after=True,
+            )
+            print("Send clicked via force click.")
+        except Exception:
+            send_button.evaluate("(element) => element.click()")
+            print("Send clicked via JavaScript evaluate.")
 
     print(
         "Send click completed."
     )
+
 
     # ==========================================
     # PREVENT ANY SECOND CLICK

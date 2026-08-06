@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any
+# pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright, Page
 
 from app.config import BASE_URL
@@ -12,7 +13,7 @@ from app.services import (
 
 
 def create_project(
-    ratio: str = "4:3",
+    ratio: str = "16:9",
     page: Optional[Page] = None,
     headless: bool = False,
 ) -> Dict[str, Any]:
@@ -68,7 +69,14 @@ def create_project(
             context, active_page = launch_flow_browser(p, headless=headless)
             try:
                 result = _execute_creator(active_page)
-                input("\nProject creation completed. Press ENTER to exit/close Chrome...")
+                try:
+                    input("\nProject creation completed. Press ENTER to exit/close Chrome...")
+                except (EOFError, KeyboardInterrupt):
+                    pass
                 return result
             finally:
                 context.close()
+
+
+if __name__ == "__main__":
+    create_project()
