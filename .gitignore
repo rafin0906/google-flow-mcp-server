@@ -6,11 +6,39 @@ chrome-data/
 user_data/
 .chrome_profile/
 
+# Environments & Virtual Envs
+.venv/
+env/
+venv/
+ENV/
+
 # Environment and secret files
 .env
 .env.*
+*.env
 
-# Python & Node
+# Media & Generated Output Directories
+screenshots/
+downloads/
+input_images/
+
+# Python Cache & Artifacts
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Python & Node
 node_modules/
+
+# Logs
+*.log
+logs/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.agents/
