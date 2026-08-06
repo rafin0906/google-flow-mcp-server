@@ -107,3 +107,14 @@ Change the color of the hair to black.
 AUTOMATION_PROMPT_COMPLETE_9F3A
 """.strip()
 
+
+# ==================================================
+# FLOW RATIO CHANGE PROMPT
+# ==================================================
+
+FLOW_RATIO_CHANGE_PROMPT = """
+change with desire ratio but change others thing
+AUTOMATION_PROMPT_COMPLETE_9F3A
+""".strip()
+
+

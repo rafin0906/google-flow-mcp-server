@@ -2,9 +2,11 @@
 from app.boss_functions.project_creator import create_project
 from app.boss_functions.poster_generator import generate_poster
 from app.boss_functions.poster_editor import edit_poster
+from app.boss_functions.poster_ratio_editor import change_ratio_and_download
 
 __all__ = [
     "create_project",
     "generate_poster",
     "edit_poster",
+    "change_ratio_and_download",
 ]
