@@ -69,6 +69,16 @@
       "image_edit_page_url": "https://labs.google/fx/tools/flow/project/66419984-bce2-49c1-bc4a-9c96f8184e50/edit/258bb937-ca16-4ce4-ae37-4a5af4fda3d4",
       "downloaded_image_path": "C:\\MCP Servers\\flow-project\\downloads\\Gavi_colored_hair_pink_202608070156.jpeg",
       "status": "ratio_edited"
+    },
+    {
+      "project_id": "proj_ae92c20f",
+      "project_url": "https://labs.google/fx/tools/flow/project/3ca7833a-ddb0-4187-be2c-fe331b96163b",
+      "ratio": "4:3",
+      "created_at": "2026-08-06T21:29:45.872026+00:00",
+      "updated_at": "2026-08-06T21:29:45.872026+00:00",
+      "image_edit_page_url": null,
+      "downloaded_image_path": null,
+      "status": "created"
     }
   ]
 }

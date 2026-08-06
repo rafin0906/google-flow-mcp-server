@@ -30,28 +30,65 @@ newlab/
 - Google Chrome browser
 - Pre-configured `chrome_profile/` directory logged into Google
 
-## Setup Instructions
+## Setup & Execution with UV
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+This project is configured to use [`uv`](https://github.com/astral-sh/uv) for fast, isolated Python package and environment management.
 
-2. Ensure Playwright browsers are installed:
-   ```bash
-   playwright install chromium
-   ```
-
-3. Place target image files in `input_images/`.
-
-## Running Automation
-
-Execute via `main.py`:
+### 1. Initialize / Install Dependencies
 ```bash
-python main.py
+uv sync
+uv run python -m playwright install chromium
 ```
 
-Or via legacy entry point `flow_scraper.py`:
+### 2. Run FastMCP Server
+To run the FastMCP server via STDIO (for Claude Desktop, Cursor, or MCP clients):
 ```bash
-python flow_scraper.py
+uv run python -m app.mcp.server
 ```
+or using FastMCP CLI:
+```bash
+uv run fastmcp run app/mcp/server.py
+```
+
+### 3. Run MCP Inspector Mode
+To launch the MCP Server with interactive web-based Inspector:
+```bash
+uv run fastmcp dev inspector app/mcp/server.py
+```
+or via npx:
+```bash
+npx @modelcontextprotocol/inspector uv run python -m app.mcp.server
+```
+
+### 4. Connect with Claude Desktop
+
+Add the following block to your `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "google-flow": {
+      "command": "C:/Users/sohel/AppData/Roaming/Python/Python312/Scripts/uv.exe",
+      "args": [
+        "--directory",
+        "c:/MCP Servers/flow-project",
+        "run",
+        "python",
+        "-m",
+        "app.mcp.server"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Direct Script Execution
+
+Execute standard automation pipeline via `main.py`:
+```bash
+uv run python main.py
+```
+
+
