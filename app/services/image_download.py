@@ -88,7 +88,16 @@ def download_generated_image(
 
     print("Clicking the Download button...")
 
-    download_button.click()
+    try:
+        download_button.click(timeout=5000)
+    except Exception as err:
+        print(f"Standard click on Download button intercepted ({err}). Trying Escape and force/JS click...")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(500)
+        try:
+            download_button.click(force=True, timeout=5000)
+        except Exception:
+            download_button.evaluate("(el) => el.click()")
 
     # Download menu 1K Original size option
     original_size_button = page.locator(
@@ -104,7 +113,14 @@ def download_generated_image(
 
     # Wait for download
     with page.expect_download(timeout=timeout) as download_info:
-        original_size_button.click()
+        try:
+            original_size_button.click(timeout=5000)
+        except Exception:
+            try:
+                original_size_button.click(force=True, timeout=5000)
+            except Exception:
+                original_size_button.evaluate("(el) => el.click()")
+
 
     download = download_info.value
 

@@ -34,11 +34,7 @@ def run_flow(
             print(f"Image Edit Page URL: {poster_data.get('image_edit_page_url')}")
             print(f"Downloaded Image Path: {poster_data.get('downloaded_image_path')}")
             print("==========================================\n")
-
-            try:
-                input("\nPress ENTER to close Chrome...")
-            except (EOFError, KeyboardInterrupt):
-                pass
         finally:
             context.close()
+
 

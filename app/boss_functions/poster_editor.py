@@ -107,14 +107,10 @@ def edit_poster(
         with sync_playwright() as p:
             context, active_page = launch_flow_browser(p, headless=headless)
             try:
-                result = _execute_editor(active_page)
-                try:
-                    input("\nPoster editing completed. Press ENTER to exit/close Chrome...")
-                except (EOFError, KeyboardInterrupt):
-                    pass
-                return result
+                return _execute_editor(active_page)
             finally:
                 context.close()
+
 
 
 if __name__ == "__main__":
