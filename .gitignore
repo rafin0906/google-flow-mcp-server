@@ -36,6 +36,9 @@ node_modules/
 *.log
 logs/
 
+# Database
+db/projects.json
+
 # IDE & OS files
 .vscode/
 .idea/
