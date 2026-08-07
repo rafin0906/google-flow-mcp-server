@@ -62,16 +62,33 @@ def select_aspect_ratio(page, ratio: str = "4:3") -> str:
 
     capsule_button.wait_for(state="visible", timeout=15000)
     capsule_button.scroll_into_view_if_needed()
+    page.wait_for_timeout(500)
 
     print("[Ratio Selector] Clicking capsule button to open ratio modal...")
-    capsule_button.click()
+    try:
+        capsule_button.click(timeout=5000)
+        print("[Ratio Selector] Capsule button clicked via standard click.")
+    except Exception as click_err:
+        print(f"[Ratio Selector] Standard click failed/intercepted ({click_err}). Trying force click & JS click...")
+        try:
+            capsule_button.click(force=True, timeout=5000)
+            print("[Ratio Selector] Capsule button clicked via force click.")
+        except Exception:
+            capsule_button.evaluate("(element) => element.click()")
+            print("[Ratio Selector] Capsule button clicked via JavaScript evaluate.")
 
     page.wait_for_timeout(1000)
 
     # 2. Wait for ratio options container / buttons to open
     print("[Ratio Selector] Waiting for ratio options tab buttons...")
     tab_container = page.locator('div[role="tablist"]:has(button.flow_tab_slider_trigger)').first
-    tab_container.wait_for(state="visible", timeout=10000)
+    try:
+        tab_container.wait_for(state="visible", timeout=10000)
+    except Exception:
+        print("[Ratio Selector] Tab container wait timed out. Re-clicking capsule button via JS...")
+        capsule_button.evaluate("(element) => element.click()")
+        page.wait_for_timeout(1000)
+        tab_container.wait_for(state="visible", timeout=10000)
 
     # 3. Locate target ratio tab
     ratio_tab = None
@@ -102,7 +119,17 @@ def select_aspect_ratio(page, ratio: str = "4:3") -> str:
         raise RuntimeError(f"Could not locate aspect ratio tab for ratio '{ratio}' ({target_text})")
 
     print(f"[Ratio Selector] Clicking ratio tab '{target_text}'...")
-    ratio_tab.click()
+    try:
+        ratio_tab.click(timeout=5000)
+        print(f"[Ratio Selector] Ratio tab '{target_text}' clicked via standard click.")
+    except Exception as tab_err:
+        print(f"[Ratio Selector] Standard click on ratio tab failed ({tab_err}). Trying force click & JS click...")
+        try:
+            ratio_tab.click(force=True, timeout=5000)
+            print(f"[Ratio Selector] Ratio tab '{target_text}' clicked via force click.")
+        except Exception:
+            ratio_tab.evaluate("(element) => element.click()")
+            print(f"[Ratio Selector] Ratio tab '{target_text}' clicked via JavaScript evaluate.")
 
     page.wait_for_timeout(1000)
 

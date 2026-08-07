@@ -50,7 +50,14 @@ def open_latest_generated_image(page, timeout=120000):
             latest_image_link.scroll_into_view_if_needed()
             page.wait_for_timeout(500)
             print("Opening the latest generated image link...")
-            latest_image_link.click(timeout=10000)
+            try:
+                latest_image_link.click(timeout=5000)
+            except Exception as err:
+                print(f"Standard click on image link failed ({err}). Trying force/JS click...")
+                try:
+                    latest_image_link.click(force=True, timeout=5000)
+                except Exception:
+                    latest_image_link.evaluate("(el) => el.click()")
         except Exception as err:
             print(f"Click on image link skipped/handled: {err}")
 

@@ -13,6 +13,15 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# Redirect standard built-in print calls to stderr so helper debug prints don't corrupt STDIO JSON-RPC stdout
+import builtins
+_original_print = builtins.print
+def _stderr_print(*args, **kwargs):
+    if "file" not in kwargs or kwargs["file"] is None:
+        kwargs["file"] = sys.stderr
+    _original_print(*args, **kwargs)
+builtins.print = _stderr_print
+
 # Suppress runtime warnings that could corrupt STDIO JSON-RPC
 warnings.filterwarnings("ignore")
 
@@ -132,9 +141,7 @@ def tool_poster_ratio_editor(
 
 def run_server():
     """Runs the FastMCP server via STDIO."""
-    # Redirect standard print output to stderr so stdout is purely reserved for FastMCP JSON-RPC protocol
-    sys.stdout = sys.stderr
-    mcp.run()
+    mcp.run(show_banner=False)
 
 
 if __name__ == "__main__":
