@@ -10,5 +10,4 @@ dependencies = [
     "pillow>=10.0.0",
     "playwright>=1.40.0",
     "pyperclip>=1.8.2",
-    "pywin32>=306",
 ]

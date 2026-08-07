@@ -1,17 +1,37 @@
 from pathlib import Path
 from typing import Union, List
-from app.services.clipboard_handler import copy_image_to_clipboard
-
+from app.services.clipboard_handler import prepare_image_payloads
 
 # ==================================================
-# IMAGE PASTING SERVICE
+# IN-BROWSER IMAGE PASTING SERVICE (CROSS-PLATFORM)
 # ==================================================
+
+JS_PASTE_IMAGES = """
+async (images) => {
+    const dataTransfer = new DataTransfer();
+
+    for (const img of images) {
+        const response = await fetch(`data:${img.mime};base64,${img.b64}`);
+        const blob = await response.blob();
+        const file = new File([blob], img.name, { type: img.mime });
+        dataTransfer.items.add(file);
+    }
+
+    const event = new ClipboardEvent("paste", {
+        clipboardData: dataTransfer,
+        bubbles: true,
+        cancelable: true
+    });
+
+    document.activeElement.dispatchEvent(event);
+}
+"""
+
 
 def paste_images_into_flow(
     page,
     image_paths: Union[List[Path], Path],
 ):
-
     if isinstance(image_paths, Path):
         image_paths = [image_paths]
 
@@ -20,7 +40,7 @@ def paste_images_into_flow(
         return
 
     print(
-        f"\nStarting copy & paste for {len(image_paths)} image(s)..."
+        f"\nStarting cross-platform image paste for {len(image_paths)} image(s)..."
     )
 
     textbox = page.locator(
@@ -33,92 +53,50 @@ def paste_images_into_flow(
         timeout=30000,
     )
 
+    print("Flow textbox found.")
+
+    textbox.scroll_into_view_if_needed()
+
+    try:
+        textbox.click(timeout=5000)
+    except Exception:
+        print("Normal click on textbox intercepted, pressing Escape to clear overlays...")
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(500)
+        textbox.click(timeout=15000, force=True)
+
+    page.wait_for_timeout(1000)
+
+    # Convert image files to Base64 payloads
+    payloads = prepare_image_payloads(image_paths)
+
+    if not payloads:
+        print("No valid image files found to paste.")
+        return
+
+    print(f"Pasting {len(payloads)} image(s) into Flow via in-browser ClipboardEvent...")
+
+    page.evaluate(JS_PASTE_IMAGES, payloads)
+
+    print(f"Pasted {len(payloads)} image(s) successfully.")
+
+    # Wait 15 seconds for Google Flow canvas to process all pasted images
     print(
-        "Flow textbox found."
+        "\nWaiting 15 seconds for Flow to process all pasted image(s)..."
     )
 
-    total_images = len(image_paths)
+    page.wait_for_timeout(15_000)
 
-    for index, image_path in enumerate(image_paths, start=1):
-        print(
-            f"\n[{index}/{total_images}] Processing image: {image_path.name}"
-        )
-
-        # Copy current image to Windows clipboard
-        copy_image_to_clipboard(
-            image_path
-        )
-
-        textbox.scroll_into_view_if_needed()
-
-        try:
-            textbox.click(
-                timeout=5000
-            )
-        except Exception:
-            print("Normal click on textbox intercepted, pressing Escape to clear overlays...")
-            page.keyboard.press("Escape")
-            page.wait_for_timeout(500)
-            textbox.click(
-                timeout=15000,
-                force=True
-            )
-
-
-        # Ensure editor receives focus
-        page.wait_for_timeout(
-            1000
-        )
-
-        print(
-            f"[{index}/{total_images}] Pasting '{image_path.name}' with Ctrl + V..."
-        )
-
-        textbox.press(
-            "Control+V"
-        )
-
-        print(
-            f"[{index}/{total_images}] Paste command sent."
-        )
-
-        # Pause briefly between consecutive image pastes if more remain
-        if index < total_images:
-            print(
-                "Waiting 3 seconds before copying next image..."
-            )
-            page.wait_for_timeout(
-                3000
-            )
-
-    # ==============================================
-    # IMPORTANT:
-    # Wait 15 seconds BEFORE writing any prompt.
-    # ==============================================
-
-    print(
-        "\nWaiting 15 seconds "
-        "for Flow to process "
-        "all pasted image(s)..."
-    )
-
-    page.wait_for_timeout(
-        15_000
-    )
-
-    print(
-        "15-second image "
-        "processing wait completed."
-    )
+    print("15-second image processing wait completed.")
 
 
 def paste_image_into_flow(
     page,
     image_path: Path,
 ):
-
     paste_images_into_flow(
         page,
         image_path,
     )
+
 

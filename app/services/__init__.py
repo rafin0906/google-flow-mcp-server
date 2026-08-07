@@ -1,6 +1,9 @@
 # app/services/__init__.py
 from app.services.project_creation import click_new_project
-from app.services.clipboard_handler import copy_image_to_clipboard
+from app.services.clipboard_handler import (
+    get_image_mime,
+    prepare_image_payloads,
+)
 from app.services.input_image_selector import (
     get_input_images,
     get_latest_image,
@@ -28,7 +31,8 @@ from app.services.browser_handler import launch_flow_browser
 
 __all__ = [
     "click_new_project",
-    "copy_image_to_clipboard",
+    "get_image_mime",
+    "prepare_image_payloads",
     "get_input_images",
     "get_latest_image",
     "paste_images_into_flow",

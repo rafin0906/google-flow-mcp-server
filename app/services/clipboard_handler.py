@@ -1,62 +1,40 @@
+import base64
 from pathlib import Path
-from io import BytesIO
-import win32clipboard
-# pyrefly: ignore [missing-import]
-from PIL import Image
+from typing import Dict, Any, List, Union
 
 
-# ==================================================
-# WINDOWS CLIPBOARD SERVICE
-# ==================================================
+def get_image_mime(path: Path) -> str:
+    """Returns MIME type based on file extension."""
+    ext = path.suffix.lower()
+    if ext in [".jpg", ".jpeg"]:
+        return "image/jpeg"
+    if ext == ".png":
+        return "image/png"
+    if ext == ".webp":
+        return "image/webp"
+    if ext == ".gif":
+        return "image/gif"
+    return "application/octet-stream"
 
-def copy_image_to_clipboard(
-    image_path: Path,
-):
 
-    print(
-        "\nCopying image to "
-        "Windows clipboard..."
-    )
+def prepare_image_payloads(
+    image_paths: Union[List[Path], Path]
+) -> List[Dict[str, Any]]:
+    """
+    Reads image file(s) and converts them into Base64 payload dictionary objects
+    suitable for in-browser JavaScript DataTransfer clipboard event dispatching.
+    """
+    if isinstance(image_paths, Path):
+        image_paths = [image_paths]
 
-    with Image.open(
-        image_path
-    ) as image:
+    payloads = []
+    for img in image_paths:
+        if not img.exists():
+            continue
+        payloads.append({
+            "name": img.name,
+            "mime": get_image_mime(img),
+            "b64": base64.b64encode(img.read_bytes()).decode("utf-8")
+        })
+    return payloads
 
-        image = image.convert(
-            "RGB"
-        )
-
-        output = BytesIO()
-
-        image.save(
-            output,
-            format="BMP",
-        )
-
-        bmp_data = (
-            output.getvalue()
-        )
-
-    # Remove BMP file header
-    dib_data = (
-        bmp_data[14:]
-    )
-
-    win32clipboard.OpenClipboard()
-
-    try:
-
-        win32clipboard.EmptyClipboard()
-
-        win32clipboard.SetClipboardData(
-            win32clipboard.CF_DIB,
-            dib_data,
-        )
-
-    finally:
-
-        win32clipboard.CloseClipboard()
-
-    print(
-        "Image copied successfully."
-    )
