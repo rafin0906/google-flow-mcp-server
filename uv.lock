@@ -408,7 +408,6 @@ dependencies = [
     { name = "pillow" },
     { name = "playwright" },
     { name = "pyperclip" },
-    { name = "pywin32" },
 ]
 
 [package.metadata]
@@ -418,7 +417,6 @@ requires-dist = [
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "playwright", specifier = ">=1.40.0" },
     { name = "pyperclip", specifier = ">=1.8.2" },
-    { name = "pywin32", specifier = ">=306" },
 ]
 
 [[package]]
