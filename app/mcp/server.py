@@ -42,7 +42,7 @@ mcp = FastMCP("Google Flow MCP Server")
 @mcp.tool()
 def tool_create_project(
     ratio: str = "4:3",
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 1: Creates a new Google Flow project page, saves the project URL to DB (db/projects.json),
@@ -50,7 +50,7 @@ def tool_create_project(
 
     Args:
         ratio: Aspect ratio for the project (options: '16:9', '4:3', '1:1', '3:4', '9:16'). Default: '4:3'.
-        headless: Whether to run Chrome browser in headless mode. Default: False.
+        headless: Optional boolean override for headless mode. If None, uses HEADLESS from app/config.py.
 
     Returns:
         Dict containing project_url, ratio, created_at timestamp, and status.
@@ -63,7 +63,7 @@ def tool_generate_poster(
     project_url: Optional[str] = None,
     prompt: Optional[str] = None,
     image_paths: Optional[List[str]] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 2: Generates a poster in Google Flow: pastes input images and prompt onto the canvas,
@@ -73,7 +73,7 @@ def tool_generate_poster(
         project_url: Optional target project URL. If not provided, automatically uses the latest project from DB.
         prompt: Optional custom prompt text. If not provided, uses default FLOW_PROMPT.
         image_paths: Optional list of image file paths to paste. If not provided, uses images from input_images/.
-        headless: Whether to run Chrome browser in headless mode. Default: False.
+        headless: Optional boolean override for headless mode. If None, uses HEADLESS from app/config.py.
 
     Returns:
         Dict containing project_url, image_edit_page_url, downloaded_image_path, and status.
@@ -90,7 +90,7 @@ def tool_generate_poster(
 def tool_edit_poster(
     image_edit_page_url: Optional[str] = None,
     edit_prompt: Optional[str] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 3: Edits/refines an existing poster image using the image_edit_page_url stored in DB,
@@ -99,7 +99,7 @@ def tool_edit_poster(
     Args:
         image_edit_page_url: Optional image edit URL. If not provided, uses the latest image_edit_page_url from DB.
         edit_prompt: Optional custom edit prompt. If not provided, uses default FLOW_EDIT_PROMPT.
-        headless: Whether to run Chrome browser in headless mode. Default: False.
+        headless: Optional boolean override for headless mode. If None, uses HEADLESS from app/config.py.
 
     Returns:
         Dict containing original edit URL, new image_edit_page_url, downloaded_image_path, and status.
@@ -116,7 +116,7 @@ def tool_poster_ratio_editor(
     edit_url: Optional[str] = None,
     ratio: str = "4:3",
     prompt: Optional[str] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 4: Opens the latest image edit page from DB (db/projects.json), selects the target model aspect ratio,
@@ -126,7 +126,7 @@ def tool_poster_ratio_editor(
         edit_url: Optional image edit URL. If not provided, uses the latest image_edit_page_url from DB.
         ratio: Target aspect ratio (options: '16:9', '4:3', '1:1', '3:4', '9:16'). Default: '4:3'.
         prompt: Optional ratio change prompt. If not provided, uses default FLOW_RATIO_CHANGE_PROMPT.
-        headless: Whether to run Chrome browser in headless mode. Default: False.
+        headless: Optional boolean override for headless mode. If None, uses HEADLESS from app/config.py.
 
     Returns:
         Dict containing edit URL, selected ratio, downloaded_image_path, and status.

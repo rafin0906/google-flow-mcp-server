@@ -20,7 +20,7 @@ def generate_poster(
     prompt: Optional[str] = None,
     image_paths: Optional[List[str]] = None,
     page: Optional[Page] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 2: Poster Generator

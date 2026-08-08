@@ -7,12 +7,26 @@ from app.services.clipboard_handler import prepare_image_payloads
 # ==================================================
 
 JS_PASTE_IMAGES = """
-async (images) => {
+([element, images]) => {
+    function b64ToBlob(b64Data, contentType) {
+        const byteCharacters = atob(b64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], { type: contentType });
+    }
+
+    const target = element || document.querySelector("div[role='textbox'][contenteditable='true']") || document.activeElement;
+    if (target && target.focus) {
+        target.focus();
+    }
+
     const dataTransfer = new DataTransfer();
 
     for (const img of images) {
-        const response = await fetch(`data:${img.mime};base64,${img.b64}`);
-        const blob = await response.blob();
+        const blob = b64ToBlob(img.b64, img.mime);
         const file = new File([blob], img.name, { type: img.mime });
         dataTransfer.items.add(file);
     }
@@ -23,7 +37,18 @@ async (images) => {
         cancelable: true
     });
 
-    document.activeElement.dispatchEvent(event);
+    if (target) {
+        target.dispatchEvent(event);
+    }
+    const slateEditor = document.querySelector("div[role='textbox'][contenteditable='true']");
+    if (slateEditor && slateEditor !== target) {
+        slateEditor.dispatchEvent(event);
+    }
+    if (document.activeElement && document.activeElement !== target && document.activeElement !== slateEditor) {
+        document.activeElement.dispatchEvent(event);
+    }
+
+    return true;
 }
 """
 
@@ -65,6 +90,7 @@ def paste_images_into_flow(
         page.wait_for_timeout(500)
         textbox.click(timeout=15000, force=True)
 
+    textbox.focus()
     page.wait_for_timeout(1000)
 
     # Convert image files to Base64 payloads
@@ -76,7 +102,7 @@ def paste_images_into_flow(
 
     print(f"Pasting {len(payloads)} image(s) into Flow via in-browser ClipboardEvent...")
 
-    page.evaluate(JS_PASTE_IMAGES, payloads)
+    page.evaluate(JS_PASTE_IMAGES, [textbox.element_handle(), payloads])
 
     print(f"Pasted {len(payloads)} image(s) successfully.")
 

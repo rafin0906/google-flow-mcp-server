@@ -20,7 +20,7 @@ def change_ratio_and_download(
     ratio: str = "4:3",
     prompt: Optional[str] = None,
     page: Optional[Page] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 4: Poster Ratio Editor

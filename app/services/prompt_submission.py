@@ -13,6 +13,94 @@ from app.prompts import FLOW_PROMPT
 # PROMPT SUBMISSION SERVICE
 # ==================================================
 
+JS_PASTE_TEXT = """
+([element, text]) => {
+    const target = element || document.querySelector("div[role='textbox'][contenteditable='true']") || document.activeElement;
+    if (target && target.focus) {
+        target.focus();
+    }
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData("text/plain", text);
+    const event = new ClipboardEvent("paste", {
+        clipboardData: dataTransfer,
+        bubbles: true,
+        cancelable: true
+    });
+    if (target) {
+        target.dispatchEvent(event);
+    }
+    const slateEditor = document.querySelector("div[role='textbox'][contenteditable='true']");
+    if (slateEditor && slateEditor !== target) {
+        slateEditor.dispatchEvent(event);
+    }
+    return true;
+}
+"""
+
+
+def is_user_prompt_present(text_box_content: str, target_prompt: str) -> bool:
+    """Checks if actual user prompt text is present in the Slate editor, ignoring placeholder text."""
+    clean_text = text_box_content.replace("What do you want to create?", "").strip()
+    if not clean_text:
+        return False
+    if PROMPT_END_MARKER in target_prompt:
+        return PROMPT_END_MARKER in clean_text
+    return len(clean_text) > 0
+
+
+def insert_text_into_flow(page, textbox, text: str):
+    print(f"\n[insert_text_into_flow] Inserting prompt ({len(text)} chars)...")
+    textbox.scroll_into_view_if_needed()
+    try:
+        textbox.click(timeout=5000)
+    except Exception:
+        page.keyboard.press("Escape")
+        page.wait_for_timeout(500)
+        textbox.click(timeout=5000, force=True)
+
+    textbox.focus()
+    page.wait_for_timeout(500)
+
+    # 1. Clear any existing content
+    page.keyboard.press("Control+A")
+    page.keyboard.press("Backspace")
+    page.wait_for_timeout(300)
+
+    # 2. Insert text via Playwright CDP keyboard insert_text (triggers Slate.js beforeinput event)
+    print("[insert_text_into_flow] Typing text via page.keyboard.insert_text...")
+    page.keyboard.insert_text(text)
+    page.wait_for_timeout(1000)
+
+    current_text = textbox.inner_text().strip()
+
+    # 3. Fallback: Try pyperclip + Control+V if insert_text didn't populate
+    if not is_user_prompt_present(current_text, text):
+        print("[insert_text_into_flow] Text not populated, trying pyperclip + Control+V fallback...")
+        try:
+            pyperclip.copy(text)
+            textbox.focus()
+            page.keyboard.press("Control+V")
+            page.wait_for_timeout(1000)
+        except Exception as e:
+            print(f"[insert_text_into_flow] pyperclip error: {e}")
+        current_text = textbox.inner_text().strip()
+
+    # 4. Fallback: Try JS DataTransfer paste event if still not present
+    if not is_user_prompt_present(current_text, text):
+        print("[insert_text_into_flow] Trying JS DataTransfer paste event fallback...")
+        try:
+            page.evaluate(JS_PASTE_TEXT, [textbox.element_handle(), text])
+            page.wait_for_timeout(1000)
+        except Exception as e:
+            print(f"[insert_text_into_flow] JS paste error: {e}")
+
+    # 5. Trigger React input update
+    page.keyboard.press("Space")
+    page.wait_for_timeout(200)
+    page.keyboard.press("Backspace")
+    page.wait_for_timeout(500)
+
+
 def enter_prompt_and_send(
     page,
     prompt_text=None,
@@ -33,46 +121,15 @@ def enter_prompt_and_send(
         timeout=30000,
     )
 
-    textbox.scroll_into_view_if_needed()
-
-    textbox.click(
-        timeout=15000,
-    )
-
-    page.wait_for_timeout(
-        1000
-    )
-
-    # ==========================================
-    # COPY PROMPT TO CLIPBOARD
-    # ==========================================
-
     print(
-        "\nCopying complete prompt "
-        "to clipboard..."
+        "Inserting prompt into Flow..."
     )
 
-    pyperclip.copy(
-        target_prompt
-    )
-
-
-    # ==========================================
-    # PASTE PROMPT ONCE
-    # ==========================================
-
-    print(
-        "Pasting complete prompt "
-        "into Flow..."
-    )
-
-    textbox.press(
-        "Control+V"
-    )
+    insert_text_into_flow(page, textbox, target_prompt)
 
     # Give Slate editor time
     page.wait_for_timeout(
-        3000
+        2000
     )
 
     # ==========================================
@@ -97,14 +154,9 @@ def enter_prompt_and_send(
             .strip()
         )
 
-        if PROMPT_END_MARKER in target_prompt:
-            if PROMPT_END_MARKER in current_text:
-                prompt_complete = True
-                break
-        else:
-            if len(current_text) > 0:
-                prompt_complete = True
-                break
+        if is_user_prompt_present(current_text, target_prompt):
+            prompt_complete = True
+            break
 
 
         elapsed_ms = (
@@ -359,12 +411,9 @@ def enter_edit_prompt_and_send(
 
     page.wait_for_timeout(1000)
 
-    print("\nCopying editing prompt to clipboard...")
-    pyperclip.copy(prompt_text)
-
-    print("Pasting editing prompt into Flow...")
-    textbox.press("Control+V")
-    page.wait_for_timeout(2000)
+    print("Inserting editing prompt into Flow...")
+    insert_text_into_flow(page, textbox, prompt_text)
+    page.wait_for_timeout(1000)
 
     print("\nLocating Send button on edit page...")
     send_selectors = [

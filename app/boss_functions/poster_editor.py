@@ -18,7 +18,7 @@ def edit_poster(
     image_edit_page_url: Optional[str] = None,
     edit_prompt: Optional[str] = None,
     page: Optional[Page] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 3: Poster Editor

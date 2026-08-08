@@ -15,7 +15,7 @@ from app.services import (
 def create_project(
     ratio: str = "16:9",
     page: Optional[Page] = None,
-    headless: bool = False,
+    headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 1: Project Creator

@@ -1,17 +1,21 @@
+from typing import Optional
 from pathlib import Path
 # pyrefly: ignore [missing-import]
 from playwright.sync_api import Playwright, BrowserContext, Page
-from app.config import USER_DATA_DIR, PROFILE_DIRECTORY
+from app.config import USER_DATA_DIR, PROFILE_DIRECTORY, HEADLESS
 
 
 def launch_flow_browser(
     playwright_instance: Playwright,
-    headless: bool = False
+    headless: Optional[bool] = None
 ) -> tuple[BrowserContext, Page]:
     """
     Launches Chrome persistent context with the saved profile.
+    If headless is None, uses central HEADLESS setting from app.config.
     Returns (context, page).
     """
+    if headless is None:
+        headless = HEADLESS
     if not USER_DATA_DIR.exists():
         raise FileNotFoundError(
             f"chrome_profile folder was not found:\n{USER_DATA_DIR}"

@@ -81,3 +81,7 @@ DB_FILE = (
 
 PROFILE_DIRECTORY = "Default"
 
+# Global Browser Headless Setting (Set True for VPS/Headless execution, False for GUI mode)
+HEADLESS = True
+
+
