@@ -1,3 +1,4 @@
+from typing import Optional
 from pathlib import Path
 from app.config import INPUT_IMAGES_DIR
 
@@ -7,13 +8,10 @@ from app.config import INPUT_IMAGES_DIR
 # ==================================================
 
 def get_input_images() -> list[Path]:
-
     if not INPUT_IMAGES_DIR.exists():
-
-        raise FileNotFoundError(
-            "input_images folder was not found:\n"
-            f"{INPUT_IMAGES_DIR}"
-        )
+        INPUT_IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"\n[input_image_selector] Created missing directory: {INPUT_IMAGES_DIR}")
+        return []
 
     supported_extensions = {
         ".png",
@@ -35,11 +33,8 @@ def get_input_images() -> list[Path]:
     ]
 
     if not image_files:
-
-        raise FileNotFoundError(
-            "No supported image was found inside:\n"
-            f"{INPUT_IMAGES_DIR}"
-        )
+        print(f"\n[input_image_selector] No input images found in: {INPUT_IMAGES_DIR}")
+        return []
 
     image_files.sort(
         key=lambda file: (
@@ -59,9 +54,12 @@ def get_input_images() -> list[Path]:
     return image_files
 
 
-def get_latest_image() -> Path:
+def get_latest_image() -> Optional[Path]:
 
     images = get_input_images()
+
+    if not images:
+        return None
 
     latest_image = images[-1]
 

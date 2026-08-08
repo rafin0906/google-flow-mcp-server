@@ -50,7 +50,11 @@ def generate_poster(
     # 2. Determine input images
     if image_paths is None:
         image_paths = get_input_images()
-    print(f"[Poster Generator] Input images to paste: {image_paths}")
+
+    if image_paths:
+        print(f"[Poster Generator] Input images to paste: {image_paths}")
+    else:
+        print("[Poster Generator] No input images provided or found. Image paste will be skipped.")
 
     def _execute_generator(active_page: Page) -> Dict[str, Any]:
         # Navigate to project page if not already there
@@ -59,10 +63,13 @@ def generate_poster(
             active_page.goto(project_url, wait_until="domcontentloaded", timeout=120000)
             active_page.wait_for_timeout(3000)
 
-        # Step 2: Copy & Paste Images
-        print("\n[Poster Generator] Step 2: Pasting input images into Flow...")
-        paste_images_into_flow(active_page, image_paths)
-        take_screenshot(active_page, "poster_generator_images_pasted.png")
+        # Step 2: Copy & Paste Images (if provided/found)
+        if image_paths:
+            print("\n[Poster Generator] Step 2: Pasting input images into Flow...")
+            paste_images_into_flow(active_page, image_paths)
+            take_screenshot(active_page, "poster_generator_images_pasted.png")
+        else:
+            print("\n[Poster Generator] Step 2: Skipping image paste (no input images found).")
 
         # Step 3 & 4: Enter Prompt & Click Send
         print("\n[Poster Generator] Step 3 & 4: Submitting prompt and clicking Send...")
