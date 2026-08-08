@@ -1,13 +1,15 @@
+import base64
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 # pyrefly: ignore [missing-import]
 from playwright.sync_api import sync_playwright, Page
 
 from app.services import (
-    get_input_images,
     paste_images_into_flow,
     enter_prompt_and_send,
     open_latest_generated_image,
     download_generated_image,
+    get_compressed_image_b64,
     get_latest_project_record,
     update_project_record,
     take_screenshot,
@@ -18,18 +20,18 @@ from app.services import (
 def generate_poster(
     project_url: Optional[str] = None,
     prompt: Optional[str] = None,
-    image_paths: Optional[List[str]] = None,
+    images_b64: Optional[List[Dict[str, str]]] = None,
     page: Optional[Page] = None,
     headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 2: Poster Generator
     1. Opens the recently created project using project_url or fetching from DB
-    2. Copies & pastes images from input_images folder onto canvas
+    2. Pastes base64 images payload onto canvas (if images_b64 provided)
     3. Types and submits the prompt
     4. Waits for generation and opens the latest generated image
-    5. ADDITIONAL TASK: Retrieves and saves the generated image edit URL (page.url) into db/projects.json
-    6. Downloads the generated image and updates DB record
+    5. Retrieves and saves the generated image edit URL (page.url) into db/projects.json
+    6. Downloads the generated image, encodes it to base64, and updates DB record
     """
     print("\n==========================================")
     print("BOSS FUNCTION 2: POSTER GENERATOR")
@@ -47,14 +49,10 @@ def generate_poster(
 
     print(f"[Poster Generator] Target Project URL: {project_url}")
 
-    # 2. Determine input images
-    if image_paths is None:
-        image_paths = get_input_images()
-
-    if image_paths:
-        print(f"[Poster Generator] Input images to paste: {image_paths}")
+    if images_b64:
+        print(f"[Poster Generator] Input base64 images to paste: {len(images_b64)} image(s)")
     else:
-        print("[Poster Generator] No input images provided or found. Image paste will be skipped.")
+        print("[Poster Generator] No images_b64 provided. Image paste will be skipped.")
 
     def _execute_generator(active_page: Page) -> Dict[str, Any]:
         # Navigate to project page if not already there
@@ -63,13 +61,13 @@ def generate_poster(
             active_page.goto(project_url, wait_until="domcontentloaded", timeout=120000)
             active_page.wait_for_timeout(3000)
 
-        # Step 2: Copy & Paste Images (if provided/found)
-        if image_paths:
-            print("\n[Poster Generator] Step 2: Pasting input images into Flow...")
-            paste_images_into_flow(active_page, image_paths)
+        # Step 2: Copy & Paste Images (if provided)
+        if images_b64:
+            print("\n[Poster Generator] Step 2: Pasting base64 input images into Flow...")
+            paste_images_into_flow(active_page, images_b64)
             take_screenshot(active_page, "poster_generator_images_pasted.png")
         else:
-            print("\n[Poster Generator] Step 2: Skipping image paste (no input images found).")
+            print("\n[Poster Generator] Step 2: Skipping image paste (no images_b64 provided).")
 
         # Step 3 & 4: Enter Prompt & Click Send
         print("\n[Poster Generator] Step 3 & 4: Submitting prompt and clicking Send...")
@@ -82,7 +80,7 @@ def generate_poster(
 
         # ADDITIONAL TASK: Get image edit page URL
         image_edit_page_url = active_page.url
-        print(f"\n[Poster Generator] Step 7 (ADDITIONAL TASK): Retrieved Image Edit Page URL!")
+        print(f"\n[Poster Generator] Step 7: Retrieved Image Edit Page URL!")
         print(f"                  Image Edit Page Link: {image_edit_page_url}")
 
         print("\n[Poster Generator] Updating DB with Image Edit Page URL...")
@@ -94,9 +92,12 @@ def generate_poster(
 
         take_screenshot(active_page, "poster_generator_image_opened.png")
 
-        # Step 7: Download Generated Image
+        # Step 8: Download Generated Image
         print("\n[Poster Generator] Step 8: Downloading generated image...")
         downloaded_file = download_generated_image(active_page)
+
+        # Encode downloaded image to compressed lightweight base64 preview for MCP response (<150KB)
+        downloaded_b64 = get_compressed_image_b64(downloaded_file, max_dim=800, quality=75)
 
         print("\n[Poster Generator] Updating DB with Downloaded Image Path...")
         updated_record = update_project_record(
@@ -115,12 +116,17 @@ def generate_poster(
         print(f"Downloaded Image: {downloaded_file}")
         print("==========================================\n")
 
-        return updated_record or {
+        result = updated_record or {
             "project_url": project_url,
             "image_edit_page_url": image_edit_page_url,
             "downloaded_image_path": downloaded_file,
             "status": "completed"
         }
+
+        if downloaded_b64:
+            result["downloaded_image_b64"] = downloaded_b64
+
+        return result
 
     if page is not None:
         return _execute_generator(page)

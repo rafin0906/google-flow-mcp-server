@@ -1,6 +1,5 @@
-from pathlib import Path
-from typing import Union, List
-from app.services.clipboard_handler import prepare_image_payloads
+from typing import Dict, List, Any
+from app.services.clipboard_handler import prepare_image_payloads_from_b64
 
 # ==================================================
 # IN-BROWSER IMAGE PASTING SERVICE (CROSS-PLATFORM)
@@ -55,17 +54,22 @@ JS_PASTE_IMAGES = """
 
 def paste_images_into_flow(
     page,
-    image_paths: Union[List[Path], Path],
+    images_b64: List[Dict[str, str]],
 ):
-    if isinstance(image_paths, Path):
-        image_paths = [image_paths]
+    """
+    Pastes base64 image payloads into Google Flow textbox using synthetic DataTransfer clipboard events.
+    """
+    if not images_b64:
+        print("\nNo base64 image payloads provided to paste.")
+        return
 
-    if not image_paths:
-        print("\nNo images provided to paste.")
+    payloads = prepare_image_payloads_from_b64(images_b64)
+    if not payloads:
+        print("No valid base64 image payloads found to paste.")
         return
 
     print(
-        f"\nStarting cross-platform image paste for {len(image_paths)} image(s)..."
+        f"\nStarting cross-platform image paste for {len(payloads)} base64 image(s)..."
     )
 
     textbox = page.locator(
@@ -93,13 +97,6 @@ def paste_images_into_flow(
     textbox.focus()
     page.wait_for_timeout(1000)
 
-    # Convert image files to Base64 payloads
-    payloads = prepare_image_payloads(image_paths)
-
-    if not payloads:
-        print("No valid image files found to paste.")
-        return
-
     print(f"Pasting {len(payloads)} image(s) into Flow via in-browser ClipboardEvent...")
 
     page.evaluate(JS_PASTE_IMAGES, [textbox.element_handle(), payloads])
@@ -115,14 +112,5 @@ def paste_images_into_flow(
 
     print("15-second image processing wait completed.")
 
-
-def paste_image_into_flow(
-    page,
-    image_path: Path,
-):
-    paste_images_into_flow(
-        page,
-        image_path,
-    )
 
 

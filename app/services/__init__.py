@@ -2,15 +2,11 @@
 from app.services.project_creation import click_new_project
 from app.services.clipboard_handler import (
     get_image_mime,
-    prepare_image_payloads,
-)
-from app.services.input_image_selector import (
-    get_input_images,
-    get_latest_image,
+    prepare_image_payloads_from_b64,
+    get_compressed_image_b64,
 )
 from app.services.image_pasting import (
     paste_images_into_flow,
-    paste_image_into_flow,
 )
 from app.services.prompt_submission import (
     enter_prompt_and_send,
@@ -32,11 +28,9 @@ from app.services.browser_handler import launch_flow_browser
 __all__ = [
     "click_new_project",
     "get_image_mime",
-    "prepare_image_payloads",
-    "get_input_images",
-    "get_latest_image",
+    "prepare_image_payloads_from_b64",
+    "get_compressed_image_b64",
     "paste_images_into_flow",
-    "paste_image_into_flow",
     "enter_prompt_and_send",
     "enter_edit_prompt_and_send",
     "open_latest_generated_image",

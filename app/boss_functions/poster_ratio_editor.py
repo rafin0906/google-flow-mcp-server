@@ -8,6 +8,7 @@ from app.services import (
     enter_edit_prompt_and_send,
     open_latest_generated_image,
     download_generated_image,
+    get_compressed_image_b64,
     get_latest_project_record,
     update_project_record,
     take_screenshot,
@@ -81,6 +82,7 @@ def change_ratio_and_download(
         # Step 6: Click Download (Original Size)
         print("\n[Ratio Selector] Step 6: Downloading new image (1K Original Size)...")
         downloaded_file = download_generated_image(active_page)
+        downloaded_b64 = get_compressed_image_b64(downloaded_file, max_dim=800, quality=75)
 
         print("\n[Ratio Selector] Updating DB record...")
         updated_record = update_project_record(
@@ -99,12 +101,15 @@ def change_ratio_and_download(
         print(f"Downloaded Image: {downloaded_file}")
         print("==========================================\n")
 
-        return updated_record or {
+        result = updated_record or {
             "image_edit_page_url": new_image_edit_url,
             "ratio": selected_ratio,
             "downloaded_image_path": downloaded_file,
             "status": "ratio_edited"
         }
+        if downloaded_b64:
+            result["downloaded_image_b64"] = downloaded_b64
+        return result
 
     if page is not None:
         return _execute_ratio_changer(page)

@@ -62,26 +62,26 @@ def tool_create_project(
 def tool_generate_poster(
     project_url: Optional[str] = None,
     prompt: Optional[str] = None,
-    image_paths: Optional[List[str]] = None,
+    images_b64: Optional[List[Dict[str, str]]] = None,
     headless: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """
-    Boss Function 2: Generates a poster in Google Flow: pastes input images and prompt onto the canvas,
+    Boss Function 2: Generates a poster in Google Flow: pastes base64 input images and prompt onto the canvas,
     clicks Send, opens the generated image edit page, records the image_edit_page_url in DB, and downloads 1K output.
 
     Args:
         project_url: Optional target project URL. If not provided, automatically uses the latest project from DB.
         prompt: Optional custom prompt text. If not provided, uses default FLOW_PROMPT.
-        image_paths: Optional list of image file paths to paste. If not provided, uses images from input_images/.
+        images_b64: Optional list of base64 image payload objects to paste. Format: [{"name": "image.png", "mime": "image/png", "b64": "<base64_string>"}]
         headless: Optional boolean override for headless mode. If None, uses HEADLESS from app/config.py.
 
     Returns:
-        Dict containing project_url, image_edit_page_url, downloaded_image_path, and status.
+        Dict containing project_url, image_edit_page_url, downloaded_image_path, downloaded_image_b64, and status.
     """
     return generate_poster(
         project_url=project_url,
         prompt=prompt,
-        image_paths=image_paths,
+        images_b64=images_b64,
         headless=headless,
     )
 
