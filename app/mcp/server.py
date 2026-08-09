@@ -67,24 +67,37 @@ async def health_check(request: Request):
 
 
 
+from app.services.clipboard_handler import get_compressed_image_b64
+
+
 def format_mcp_tool_result(result_dict: Dict[str, Any]) -> List[Any]:
     """
     Formats tool result dictionary into lightweight standard MCP content blocks.
-    Strips heavy Base64 payload to prevent burning Claude Desktop token limits,
-    relying on public_image_url for fast, lightweight rendering.
+    Strips private Google Flow project URLs for user privacy.
+    Embeds a lightweight Base64 Data URI inside the HTML artifact for instant preview.
     """
-    result_dict.pop("downloaded_image_b64", None)
-    download_path = result_dict.get("downloaded_image_path")
+    clean_dict = dict(result_dict)
 
-    if download_path and not result_dict.get("public_image_url"):
-        result_dict["public_image_url"] = get_public_image_url(download_path)
+    # Strip private Google account URLs from public tool result for user privacy
+    clean_dict.pop("project_url", None)
+    clean_dict.pop("image_edit_page_url", None)
 
-    public_url = result_dict.get("public_image_url", "")
-    status = result_dict.get("status", "completed")
-    project_url = result_dict.get("project_url", "")
+    download_path = clean_dict.get("downloaded_image_path")
 
-    # Construct formatted response text
-    json_summary = json.dumps(result_dict, indent=2)
+    if download_path and not clean_dict.get("public_image_url"):
+        clean_dict["public_image_url"] = get_public_image_url(download_path)
+
+    public_url = clean_dict.get("public_image_url", "")
+    status = clean_dict.get("status", "completed")
+
+    # Generate lightweight base64 Data URI for instant inline HTML artifact preview
+    b64_preview = get_compressed_image_b64(download_path, max_dim=800, quality=75) if download_path else None
+    img_src = f"data:image/jpeg;base64,{b64_preview}" if b64_preview else public_url
+
+    # Clean raw b64 from json summary output to save token limits
+    clean_dict.pop("downloaded_image_b64", None)
+
+    json_summary = json.dumps(clean_dict, indent=2)
 
     text_parts = [
         f"### 🎨 Poster Output Metadata\n```json\n{json_summary}\n```"
@@ -93,17 +106,16 @@ def format_mcp_tool_result(result_dict: Dict[str, Any]) -> List[Any]:
     if public_url:
         text_parts.append(
             f"\n### 🖼️ Public Poster Image\n"
-            f"![Poster Preview]({public_url})\n\n"
             f"🔗 **Public Download Link:** [{public_url}]({public_url})\n"
         )
 
-        # Lightweight HTML Artifact block using HTTPS public URL
+        # Lightweight HTML Artifact block using Inline Base64 Data URI + Public HTTPS Download Link
         artifact_html = f"""```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Google Flow Poster Viewer</title>
+  <title>Poster Viewer</title>
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }}
     .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; max-width: 640px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); text-align: center; }}
@@ -111,21 +123,18 @@ def format_mcp_tool_result(result_dict: Dict[str, Any]) -> List[Any]:
     .btn-row {{ display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }}
     .btn {{ background: #3b82f6; color: #ffffff; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 14px; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 8px; }}
     .btn:hover {{ background: #2563eb; }}
-    .btn-secondary {{ background: #334155; color: #cbd5e1; }}
-    .btn-secondary:hover {{ background: #475569; color: #ffffff; }}
     .meta {{ text-align: left; background: #0f172a; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.6; word-break: break-all; }}
   </style>
 </head>
 <body>
   <div class="card">
-    <img src="{public_url}" alt="Generated Poster" class="poster-img" />
+    <img src="{img_src}" alt="Generated Poster" class="poster-img" />
     <div class="meta">
       <div><strong>Status:</strong> {status}</div>
-      <div><strong>Public URL:</strong> <a href="{public_url}" target="_blank" style="color:#60a5fa;">{public_url}</a></div>
+      <div><strong>Public Link:</strong> <a href="{public_url}" target="_blank" style="color:#60a5fa;">{public_url}</a></div>
     </div>
     <div class="btn-row">
       <a href="{public_url}" target="_blank" download class="btn">⬇ Download High-Res Poster</a>
-      {f'<a href="{project_url}" target="_blank" class="btn btn-secondary">🌐 Open Flow Project</a>' if project_url else ''}
     </div>
   </div>
 </body>
