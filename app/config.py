@@ -89,6 +89,16 @@ HEADLESS = True
 # ==================================================
 import os
 
+try:
+    from dotenv import load_dotenv
+    _env_file = PROJECT_DIR / ".env"
+    if _env_file.exists():
+        load_dotenv(_env_file)
+    else:
+        load_dotenv()
+except ImportError:
+    pass
+
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
