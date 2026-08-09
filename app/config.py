@@ -84,4 +84,32 @@ PROFILE_DIRECTORY = "Default"
 # Global Browser Headless Setting (Set True for VPS/Headless execution, False for GUI mode)
 HEADLESS = True
 
+# ==================================================
+# PUBLIC MEDIA SERVER CONFIGURATION (VPS / REMOTE)
+# ==================================================
+import os
+
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:8000")
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
+SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
+MCP_PORT = int(os.getenv("MCP_PORT", "8001"))
+MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio")
+
+
+import urllib.parse
+
+def get_public_image_url(image_path: os.PathLike | str | None) -> str | None:
+    """
+    Generates a public URL for a downloaded image file.
+    Example: /path/to/downloads/poster_123.jpeg -> https://your-domain.ngrok-free.dev/downloads/poster_123.jpeg
+    """
+    if not image_path:
+        return None
+    path = Path(image_path)
+    base_url = os.getenv("PUBLIC_BASE_URL", PUBLIC_BASE_URL).rstrip("/")
+    encoded_filename = urllib.parse.quote(path.name)
+    return f"{base_url}/downloads/{encoded_filename}"
+
+
+
 

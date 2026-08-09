@@ -17,12 +17,16 @@ def get_image_mime(path: Path) -> str:
     return "application/octet-stream"
 
 
+import re
+
+
 def prepare_image_payloads_from_b64(
     images_b64: List[Dict[str, str]]
 ) -> List[Dict[str, Any]]:
     """
     Validates and cleans Base64 image payloads passed directly into memory.
     Strips data URL prefixes (e.g. 'data:image/png;base64,') if present.
+    Removes whitespace/newlines and ensures valid base64 padding.
     Returns payloads formatted for in-browser DataTransfer paste dispatch.
     """
     if not images_b64:
@@ -33,15 +37,23 @@ def prepare_image_payloads_from_b64(
         if not isinstance(img, dict):
             continue
 
-        b64_data = img.get("b64", "")
+        b64_data = img.get("b64") or img.get("base64") or img.get("data") or ""
         if not b64_data:
             continue
 
-        # Strip Data URL prefix if present (e.g. data:image/png;base64,...)
-        if "," in b64_data and b64_data.strip().startswith("data:"):
+        # Strip Data URL prefix if present (e.g. data:image/png;base64, or image/png;base64, or similar)
+        if "base64," in b64_data:
+            b64_data = b64_data.split("base64,", 1)[1]
+        elif "," in b64_data:
             b64_data = b64_data.split(",", 1)[1]
 
-        b64_data = b64_data.strip()
+        # Strip all whitespace, newlines, and invalid base64 characters
+        b64_data = re.sub(r"[^A-Za-z0-9+/=]", "", b64_data.strip())
+
+        # Ensure correct base64 padding '='
+        missing_padding = len(b64_data) % 4
+        if missing_padding:
+            b64_data += "=" * (4 - missing_padding)
 
         name = img.get("name") or f"input_image_{idx + 1}.png"
         mime = img.get("mime") or "image/png"

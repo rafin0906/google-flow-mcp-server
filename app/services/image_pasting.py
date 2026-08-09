@@ -8,7 +8,18 @@ from app.services.clipboard_handler import prepare_image_payloads_from_b64
 JS_PASTE_IMAGES = """
 ([element, images]) => {
     function b64ToBlob(b64Data, contentType) {
-        const byteCharacters = atob(b64Data);
+        let cleanB64 = b64Data || "";
+        if (cleanB64.includes("base64,")) {
+            cleanB64 = cleanB64.split("base64,")[1];
+        } else if (cleanB64.includes(",")) {
+            cleanB64 = cleanB64.split(",")[1];
+        }
+        cleanB64 = cleanB64.replace(/[^A-Za-z0-9+/=]/g, "").trim();
+        const missingPadding = cleanB64.length % 4;
+        if (missingPadding) {
+            cleanB64 += "=".repeat(4 - missingPadding);
+        }
+        const byteCharacters = atob(cleanB64);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
             byteNumbers[i] = byteCharacters.charCodeAt(i);

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from app.config import DB_DIR, DB_FILE
+from app.config import DB_DIR, DB_FILE, get_public_image_url
 
 
 def init_db() -> None:
@@ -13,6 +13,7 @@ def init_db() -> None:
     if not DB_FILE.exists():
         with open(DB_FILE, "w", encoding="utf-8") as f:
             json.dump({"projects": []}, f, indent=2)
+
 
 
 def load_db() -> Dict[str, Any]:
@@ -59,6 +60,7 @@ def save_project_record(
         "updated_at": timestamp,
         "image_edit_page_url": None,
         "downloaded_image_path": None,
+        "public_image_url": None,
         "status": "created",
     }
 
@@ -107,6 +109,7 @@ def update_project_record(
         target_record["image_edit_page_url"] = image_edit_page_url
     if downloaded_image_path is not None:
         target_record["downloaded_image_path"] = downloaded_image_path
+        target_record["public_image_url"] = get_public_image_url(downloaded_image_path)
     if ratio is not None:
         target_record["ratio"] = ratio
     if status is not None:
@@ -119,7 +122,9 @@ def update_project_record(
     print(f"     Project URL: {target_record.get('project_url')}")
     print(f"     Image Edit Page URL: {target_record.get('image_edit_page_url')}")
     print(f"     Downloaded Path: {target_record.get('downloaded_image_path')}")
+    print(f"     Public Image URL: {target_record.get('public_image_url')}")
     return target_record
+
 
 
 def get_latest_project_record() -> Optional[Dict[str, Any]]:
