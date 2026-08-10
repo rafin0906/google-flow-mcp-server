@@ -20,6 +20,7 @@ def edit_poster(
     edit_prompt: Optional[str] = None,
     page: Optional[Page] = None,
     headless: Optional[bool] = None,
+    session_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Boss Function 3: Poster Editor
@@ -36,7 +37,7 @@ def edit_poster(
     # 1. Determine target image edit URL
     if not image_edit_page_url:
         print("[Poster Editor] Fetching latest 'image_edit_page_url' from DB (db/projects.json)...")
-        latest_record = get_latest_project_record()
+        latest_record = get_latest_project_record(session_id=session_id)
         if not latest_record or not latest_record.get("image_edit_page_url"):
             raise ValueError(
                 "No 'image_edit_page_url' found in DB. Please run Boss Function 2 (generate_poster) first."
@@ -73,7 +74,8 @@ def edit_poster(
         print("\n[Poster Editor] Updating DB with new Image Edit Page URL...")
         update_project_record(
             image_edit_page_url=new_image_edit_page_url,
-            status="image_edited"
+            status="image_edited",
+            session_id=session_id
         )
         take_screenshot(active_page, "poster_editor_image_opened.png")
 
@@ -86,7 +88,8 @@ def edit_poster(
         updated_record = update_project_record(
             image_edit_page_url=new_image_edit_page_url,
             downloaded_image_path=downloaded_file,
-            status="edit_completed"
+            status="edit_completed",
+            session_id=session_id
         )
         take_screenshot(active_page, "poster_editor_downloaded.png")
 

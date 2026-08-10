@@ -15,6 +15,8 @@ from app.services import (
     take_screenshot,
     launch_flow_browser,
 )
+from app.config import INPUT_IMAGES_DIR
+from app.services.clipboard_handler import get_image_mime, clear_input_images
 
 
 def generate_poster(
@@ -23,6 +25,7 @@ def generate_poster(
     images_b64: Optional[List[Dict[str, str]]] = None,
     page: Optional[Page] = None,
     headless: Optional[bool] = None,
+    session_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Boss Function 2: Poster Generator
@@ -40,7 +43,7 @@ def generate_poster(
     # 1. Determine target project URL
     if not project_url:
         print("[Poster Generator] Fetching latest created project from DB (db/projects.json)...")
-        latest_record = get_latest_project_record()
+        latest_record = get_latest_project_record(session_id=session_id)
         if not latest_record or not latest_record.get("project_url"):
             raise ValueError(
                 "No project URL found in DB. Please run Boss Function 1 (create_project) first."
@@ -49,10 +52,32 @@ def generate_poster(
 
     print(f"[Poster Generator] Target Project URL: {project_url}")
 
-    if images_b64:
-        print(f"[Poster Generator] Input base64 images to paste: {len(images_b64)} image(s)")
-    else:
-        print("[Poster Generator] No images_b64 provided. Image paste will be skipped.")
+    local_images_b64 = []
+    has_files = False
+    
+    session_dir = INPUT_IMAGES_DIR / session_id if session_id else INPUT_IMAGES_DIR
+    
+    if session_dir.exists():
+        for file_path in session_dir.iterdir():
+            if file_path.is_file():
+                has_files = True
+                b64_str = get_compressed_image_b64(file_path, max_dim=1920, quality=95)
+                if b64_str:
+                    mime_type = get_image_mime(file_path)
+                    local_images_b64.append({
+                        "name": file_path.name,
+                        "mime": mime_type,
+                        "b64": b64_str
+                    })
+                else:
+                    print(f"[Poster Generator] Warning: Failed to decode/compress {file_path.name}. Skipping.")
+
+    final_images_b64 = local_images_b64 + (images_b64 or [])
+
+    if has_files and not local_images_b64:
+        raise ValueError("All provided input images failed to decode/compress.")
+
+    print(f"[Poster Generator] Total input images to paste: {len(final_images_b64)} image(s)")
 
     def _execute_generator(active_page: Page) -> Dict[str, Any]:
         # Navigate to project page if not already there
@@ -62,9 +87,9 @@ def generate_poster(
             active_page.wait_for_timeout(3000)
 
         # Step 2: Copy & Paste Images (if provided)
-        if images_b64:
+        if final_images_b64:
             print("\n[Poster Generator] Step 2: Pasting base64 input images into Flow...")
-            paste_images_into_flow(active_page, images_b64)
+            paste_images_into_flow(active_page, final_images_b64)
             take_screenshot(active_page, "poster_generator_images_pasted.png")
         else:
             print("\n[Poster Generator] Step 2: Skipping image paste (no images_b64 provided).")
@@ -87,7 +112,8 @@ def generate_poster(
         update_project_record(
             project_url=project_url,
             image_edit_page_url=image_edit_page_url,
-            status="image_opened"
+            status="image_opened",
+            session_id=session_id
         )
 
         take_screenshot(active_page, "poster_generator_image_opened.png")
@@ -104,7 +130,8 @@ def generate_poster(
             project_url=project_url,
             image_edit_page_url=image_edit_page_url,
             downloaded_image_path=downloaded_file,
-            status="completed"
+            status="completed",
+            session_id=session_id
         )
 
         take_screenshot(active_page, "poster_generator_downloaded.png")
@@ -128,15 +155,22 @@ def generate_poster(
 
         return result
 
-    if page is not None:
-        return _execute_generator(page)
-    else:
-        with sync_playwright() as p:
-            context, active_page = launch_flow_browser(p, headless=headless)
-            try:
-                return _execute_generator(active_page)
-            finally:
-                context.close()
+    try:
+        if page is not None:
+            return _execute_generator(page)
+        else:
+            with sync_playwright() as p:
+                context, active_page = launch_flow_browser(p, headless=headless)
+                try:
+                    return _execute_generator(active_page)
+                finally:
+                    context.close()
+    finally:
+        if session_id:
+            print(f"\n[Poster Generator] Cleaning up input_images directory for session {session_id}...")
+        else:
+            print("\n[Poster Generator] Cleaning up input_images directory...")
+        clear_input_images(session_id)
 
 
 if __name__ == "__main__":

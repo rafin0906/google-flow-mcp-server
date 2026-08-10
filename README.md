@@ -84,6 +84,17 @@ Add the following block to your `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ---
 
+## Usage & Workflow (Session Isolation)
+
+The MCP server is fully session-aware, allowing multiple concurrent users or conversations to generate and edit projects in isolation.
+
+- **Strict Session Requirement**: Every tool call (`tool_create_project`, `tool_input_images`, `tool_generate_poster`, `tool_edit_poster`, `tool_poster_ratio_editor`) requires an active MCP session context. This is handled automatically for normal MCP client connections. If session context is missing, the tool will raise a clear error.
+- **Reference Images**: If you want to use reference images, call `tool_input_images` FIRST. It securely uploads images to a session-isolated folder on the server. `tool_generate_poster` will then automatically pick them up; there is no need to pass `images_b64` directly to it anymore (though it is still accepted as an optional override).
+- **Per-Session Project State**: Project state (`project_url`, `image_edit_page_url`, etc.) is tracked per-session in `db/projects.json`. Each tool's "use the latest project" fallback (when explicit URLs aren't passed) strictly targets the CALLING SESSION'S own projects. Concurrent users can safely use the server simultaneously without their projects, edits, or uploaded images interfering.
+- **Queueing Behavior**: Image generation runs one at a time (not in parallel) due to the shared Chromium browser profile. Concurrent requests are safely queued, not dropped.
+
+---
+
 ## Direct Script Execution
 
 Execute standard automation pipeline via `main.py`:

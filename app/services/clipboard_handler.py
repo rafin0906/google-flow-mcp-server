@@ -97,5 +97,36 @@ def get_compressed_image_b64(
         print(f"Warning: Could not compress image to base64: {e}")
         return None
 
+import os
+from app.config import INPUT_IMAGES_DIR
 
+import shutil
 
+def clear_input_images(session_id: Optional[str] = None) -> None:
+    """
+    Safely deletes images inside the input_images directory.
+    If session_id is provided, deletes only that session's subfolder.
+    If session_id is None, deletes all subfolders (useful for startup cleanup).
+    """
+    if not INPUT_IMAGES_DIR.exists():
+        return
+        
+    if session_id:
+        target_dir = INPUT_IMAGES_DIR / session_id
+        if target_dir.exists() and target_dir.is_dir():
+            try:
+                shutil.rmtree(target_dir)
+            except Exception as e:
+                print(f"Warning: Failed to delete session input images {session_id}: {e}")
+    else:
+        for item in INPUT_IMAGES_DIR.iterdir():
+            if item.is_dir():
+                try:
+                    shutil.rmtree(item)
+                except Exception as e:
+                    print(f"Warning: Failed to delete stale session directory {item.name}: {e}")
+            elif item.is_file():
+                try:
+                    item.unlink()
+                except Exception as e:
+                    print(f"Warning: Failed to delete stale input image {item.name}: {e}")

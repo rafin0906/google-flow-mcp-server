@@ -6,11 +6,15 @@ Complete step-by-step guide to run and deploy **Google Flow MCP Server** with **
 
 ## ⚡ How it Works (Single Port 8001 Architecture)
 
-The FastMCP server on **Port 8001** serves both:
+The FastMCP server on **Port 8001** serves:
 1. `/mcp` -> Streamable HTTP MCP Server
 2. `/downloads/*` -> Public Poster Image static route
+3. `/input-images` (POST) -> HTTP endpoint for uploading reference images. Accepts raw file uploads with a required `session_id` field (an alternative to the MCP tool for external integrations, featuring identical path-traversal and extension validation).
 
-This means **ONLY 1 NGROK TUNNEL** is needed to get full HTTPS support for both the MCP server and high-res image downloads!
+This means **ONLY 1 NGROK TUNNEL** is needed to get full HTTPS support for both the MCP server, high-res image downloads, and image uploads!
+
+> [!NOTE]
+> `db/projects.json` now stores a `session_id` per record to ensure isolated concurrency. Legacy records created prior to this update will have `session_id: null` (this is harmless; they simply will not match any active session's "latest project" fallback lookups).
 
 ---
 

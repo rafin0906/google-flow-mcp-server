@@ -6,6 +6,7 @@ Exposes the 4 Boss Functions as MCP Tools over STDIO.
 import os
 import sys
 import warnings
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 
 # Ensure project root is in sys.path
@@ -27,7 +28,7 @@ warnings.filterwarnings("ignore")
 
 import json
 import mcp.types as types
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Context
 
 from app.boss_functions import (
     create_project,
@@ -39,7 +40,7 @@ from app.boss_functions import (
 from starlette.requests import Request
 from starlette.responses import FileResponse, JSONResponse
 
-from app.config import get_public_image_url, SERVER_HOST, MCP_PORT, MCP_TRANSPORT, DOWNLOADS_DIR, PUBLIC_BASE_URL
+from app.config import get_public_image_url, SERVER_HOST, MCP_PORT, MCP_TRANSPORT, DOWNLOADS_DIR, PUBLIC_BASE_URL, INPUT_IMAGES_DIR
 
 # Initialize FastMCP Server
 mcp = FastMCP("Google Flow MCP Server")
@@ -65,9 +66,62 @@ async def health_check(request: Request):
     })
 
 
+def sanitize_and_validate_filename(filename: str) -> str:
+    """Extracts basename to prevent path traversal and validates image extension."""
+    if not filename:
+        raise ValueError("Filename is empty.")
+    
+    basename = Path(filename).name
+    if basename != filename or basename in {".", ".."}:
+        raise ValueError(f"Invalid filename '{filename}': Path traversal detected.")
+        
+    ext = Path(basename).suffix.lower()
+    allowed_exts = {".png", ".jpg", ".jpeg", ".webp"}
+    if ext not in allowed_exts:
+        raise ValueError(f"Invalid file extension: '{ext}'. Allowed: {', '.join(allowed_exts)}")
+        
+    return basename
 
 
-from app.services.clipboard_handler import get_compressed_image_b64
+@mcp.custom_route("/input-images", methods=["POST"])
+async def upload_input_images(request: Request):
+    """HTTP endpoint to upload raw image files directly to the VPS."""
+    try:
+        form = await request.form()
+        
+        # Require session_id for isolation
+        session_id = form.get("session_id")
+        if not session_id:
+            return JSONResponse({"error": "Unable to identify session — cannot safely process this request."}, status_code=400)
+            
+        # Optional validation on session_id to prevent traversal
+        if "/" in str(session_id) or "\\" in str(session_id) or ".." in str(session_id):
+            return JSONResponse({"error": "Invalid session_id"}, status_code=400)
+            
+        session_dir = INPUT_IMAGES_DIR / str(session_id)
+        session_dir.mkdir(parents=True, exist_ok=True)
+        
+        uploaded_files = []
+        for field_name, file_obj in form.items():
+            if hasattr(file_obj, "filename") and file_obj.filename:
+                try:
+                    safe_name = sanitize_and_validate_filename(file_obj.filename)
+                except ValueError as e:
+                    return JSONResponse({"error": str(e)}, status_code=400)
+                
+                file_path = session_dir / safe_name
+                content = await file_obj.read()
+                file_path.write_bytes(content)
+                uploaded_files.append(safe_name)
+        return JSONResponse({"status": "success", "uploaded": uploaded_files})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+
+
+from app.services.clipboard_handler import get_compressed_image_b64, clear_input_images, prepare_image_payloads_from_b64
+import base64
 
 
 def format_mcp_tool_result(result_dict: Dict[str, Any]) -> List[Any]:
@@ -184,6 +238,7 @@ async def _run_sync_tool(func, *args, **kwargs):
 async def tool_create_project(
     ratio: str = "4:3",
     headless: Optional[bool] = None,
+    ctx: Context = None
 ) -> Dict[str, Any]:
     """
     Boss Function 1: Creates a new Google Flow project page, saves the project URL to DB (db/projects.json),
@@ -196,8 +251,56 @@ async def tool_create_project(
     Returns:
         Dict containing project_url, ratio, created_at timestamp, and status.
     """
+    if not ctx or not ctx.session_id:
+        raise ValueError("Unable to identify session — cannot safely process this request.")
+        
     async with _tool_lock:
-        return await _run_sync_tool(create_project, ratio=ratio, headless=headless)
+        return await _run_sync_tool(create_project, ratio=ratio, headless=headless, session_id=ctx.session_id)
+
+
+@mcp.tool()
+async def tool_input_images(
+    images_b64: List[Dict[str, str]],
+    ctx: Context = None
+) -> Dict[str, Any]:
+    """
+    Decodes Base64 image payloads and saves them as raw files to the server's input_images directory.
+    Must be called before tool_generate_poster if you want to provide input images.
+
+    Args:
+        images_b64: List of dictionaries containing "name", "mime", and "b64" (the base64 string).
+                    Example: [{"name": "image.png", "mime": "image/png", "b64": "<base64_string>"}]
+    """
+    if not ctx or not ctx.session_id:
+        raise ValueError("Unable to identify session — cannot safely process this request.")
+        
+    session_dir = INPUT_IMAGES_DIR / ctx.session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    
+    payloads = prepare_image_payloads_from_b64(images_b64)
+    if not payloads:
+        return {"status": "error", "message": "No valid base64 image payloads provided"}
+
+    saved_files = []
+    for payload in payloads:
+        try:
+            safe_name = sanitize_and_validate_filename(payload["name"])
+        except ValueError as e:
+            return {"status": "error", "message": str(e)}
+
+        file_path = session_dir / safe_name
+        try:
+            image_data = base64.b64decode(payload["b64"])
+            file_path.write_bytes(image_data)
+            saved_files.append(safe_name)
+        except Exception as e:
+            return {"status": "error", "message": f"Failed to save {safe_name}: {e}"}
+
+    return {
+        "status": "success",
+        "message": f"Successfully saved {len(saved_files)} image(s) to session input_images directory.",
+        "saved_files": saved_files
+    }
 
 
 @mcp.tool()
@@ -206,6 +309,7 @@ async def tool_generate_poster(
     prompt: Optional[str] = None,
     images_b64: Optional[List[Dict[str, str]]] = None,
     headless: Optional[bool] = None,
+    ctx: Context = None
 ) -> List[Any]:
     """
     Boss Function 2: Generates a poster in Google Flow: pastes base64 input images and prompt onto the canvas,
@@ -220,6 +324,9 @@ async def tool_generate_poster(
     Returns:
         List containing TextContent (metadata + HTML Artifact) and ImageContent.
     """
+    if not ctx or not ctx.session_id:
+        raise ValueError("Unable to identify session — cannot safely process this request.")
+        
     async with _tool_lock:
         res = await _run_sync_tool(
             generate_poster,
@@ -227,6 +334,7 @@ async def tool_generate_poster(
             prompt=prompt,
             images_b64=images_b64,
             headless=headless,
+            session_id=ctx.session_id
         )
         return format_mcp_tool_result(res)
 
@@ -236,6 +344,7 @@ async def tool_edit_poster(
     image_edit_page_url: Optional[str] = None,
     edit_prompt: Optional[str] = None,
     headless: Optional[bool] = None,
+    ctx: Context = None
 ) -> List[Any]:
     """
     Boss Function 3: Edits/refines an existing poster image using the image_edit_page_url stored in DB,
@@ -249,12 +358,16 @@ async def tool_edit_poster(
     Returns:
         List containing TextContent (metadata + HTML Artifact) and ImageContent.
     """
+    if not ctx or not ctx.session_id:
+        raise ValueError("Unable to identify session — cannot safely process this request.")
+        
     async with _tool_lock:
         res = await _run_sync_tool(
             edit_poster,
             image_edit_page_url=image_edit_page_url,
             edit_prompt=edit_prompt,
             headless=headless,
+            session_id=ctx.session_id
         )
         return format_mcp_tool_result(res)
 
@@ -265,6 +378,7 @@ async def tool_poster_ratio_editor(
     ratio: str = "4:3",
     prompt: Optional[str] = None,
     headless: Optional[bool] = None,
+    ctx: Context = None
 ) -> List[Any]:
     """
     Boss Function 4: Opens the latest image edit page from DB (db/projects.json), selects the target model aspect ratio,
@@ -279,6 +393,9 @@ async def tool_poster_ratio_editor(
     Returns:
         List containing TextContent (metadata + HTML Artifact) and ImageContent.
     """
+    if not ctx or not ctx.session_id:
+        raise ValueError("Unable to identify session — cannot safely process this request.")
+        
     async with _tool_lock:
         res = await _run_sync_tool(
             change_ratio_and_download,
@@ -286,6 +403,7 @@ async def tool_poster_ratio_editor(
             ratio=ratio,
             prompt=prompt,
             headless=headless,
+            session_id=ctx.session_id
         )
         return format_mcp_tool_result(res)
 
@@ -297,6 +415,9 @@ def run_server():
     Supports both STDIO (default) and HTTP Streamable mode (for web/VPS deployment).
     Set MCP_TRANSPORT=http (or pass argument 'http' / 'sse') to run in HTTP mode.
     """
+    # Safety clear on startup
+    clear_input_images()
+    
     transport = MCP_TRANSPORT.lower()
     if len(sys.argv) > 1 and sys.argv[1].lower() in ["http", "--http", "sse", "--sse"]:
         transport = "http"

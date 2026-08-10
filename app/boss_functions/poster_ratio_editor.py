@@ -22,6 +22,7 @@ def change_ratio_and_download(
     prompt: Optional[str] = None,
     page: Optional[Page] = None,
     headless: Optional[bool] = None,
+    session_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Boss Function 4: Poster Ratio Editor
@@ -39,7 +40,7 @@ def change_ratio_and_download(
     # 1. Determine target edit page URL from DB
     if not edit_url:
         print("[Ratio Selector] Fetching latest image edit URL from DB (db/projects.json)...")
-        latest_record = get_latest_project_record()
+        latest_record = get_latest_project_record(session_id=session_id)
         if not latest_record or not latest_record.get("image_edit_page_url"):
             raise ValueError(
                 "No 'image_edit_page_url' found in DB. Please run Boss Function 2 (generate_poster) first."
@@ -89,7 +90,8 @@ def change_ratio_and_download(
             image_edit_page_url=new_image_edit_url,
             downloaded_image_path=downloaded_file,
             ratio=selected_ratio,
-            status="ratio_edited"
+            status="ratio_edited",
+            session_id=session_id
         )
 
         take_screenshot(active_page, "ratio_selector_downloaded.png")

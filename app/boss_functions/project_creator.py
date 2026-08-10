@@ -16,6 +16,7 @@ def create_project(
     ratio: str = "16:9",
     page: Optional[Page] = None,
     headless: Optional[bool] = None,
+    session_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Boss Function 1: Project Creator
@@ -47,7 +48,7 @@ def create_project(
         take_screenshot(active_page, "project_creator_new_project.png")
 
         print("\n[Project Creator] Step 4: Saving project link to DB (db/projects.json)...")
-        record = save_project_record(project_url=project_url, ratio=ratio)
+        record = save_project_record(project_url=project_url, ratio=ratio, session_id=session_id)
 
         print(f"\n[Project Creator] Step 5 & 6: Selecting Aspect Ratio ({ratio})...")
         selected_ratio = select_aspect_ratio(active_page, ratio=ratio)
